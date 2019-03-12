@@ -1,0 +1,9 @@
+<launch>
+    <include file="$(find mocap_nav_demo)/launch/vrpn_client.launch"/>
+    <node pkg="mocap_nav_demo" name="mocap_nav" type="mocap_nav.py" output="screen">
+        <param name="robot_name" value="jackal"/>
+        <param name="scan_topic" value="/laserscan"/>
+        <param name="gt_topic" value="/vrpn_client_node/robot/pose"/>
+        <param name="cmd_topic" value="/cmd_vel"/>
+    </node>
+</launch>
