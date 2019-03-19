@@ -1,0 +1,20 @@
+<launch>
+    <node name="urg_node" pkg="urg_node" type="urg_node" respawn="false" output="screen">
+        <param name="calibrate_time" type="bool" value="true"/>
+        <param name="ip_address" value=""/>
+        <param name="serial_port" value="/dev/ttyACM1"/>
+        <param name="serial_baud" value="115200"/>
+        <param name="intensity" type="bool" value="false"/>
+        <!-- <param name="min_ang" value="-2.08"/>
+        <param name="max_ang" value="2.08"/> -->
+
+        <param name="angle_min" value="-1.95"/>
+        <param name="angle_max" value="1.95"/>
+		
+		<param name="cluster" value="1"/>
+        <param name="frame_id" value="hokuyo_link"/>
+        <param name="publish_intensity" value="false"/>
+        <remap from="scan" to="laserscan"/>
+    </node>
+</launch>
+

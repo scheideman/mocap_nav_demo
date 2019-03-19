@@ -11,7 +11,14 @@ import sensor_msgs.point_cloud2 as pc2
 robot_pose = None
 scan = None
 
-def segmented_cte(segment, robot_xy):
+def segmented_cte(shape, cur_ind, next_ind):
+    global robot_pose
+    robot_xy = np.array([robot_pose.position.x,
+                                 robot_pose.position.y])
+    start_xy = shape[cur_ind,:]
+    next_xy = shape[next_ind,:]
+    segment = [start_xy,next_xy]
+
     delta = segment[1] - segment[0]
     robot_delta = robot_xy - segment[0]
 
@@ -19,8 +26,6 @@ def segmented_cte(segment, robot_xy):
     u = (robot_delta.dot(delta) / delta.dot(delta)) 
 
     # calculate CTE, vector rejection
-    print("num:",robot_delta[1] * delta[0] - robot_delta[0] * delta[1])
-    print("div:",np.sqrt(delta.dot(delta)))
     cte = (robot_delta[1] * delta[0] - robot_delta[0] * delta[1]) / np.sqrt(delta.dot(delta))
     return u, cte
 
@@ -35,9 +40,12 @@ def scan_callback(msg):
 def obstacle_check(scan_msg):
     distances = []
     lp = lg.LaserProjection()
+
+    # convert laser scan to point cloud
     pc2_msg = lp.projectLaser(scan_msg)
     point_generator = pc2.read_points(pc2_msg)
 
+    # calculate how far away each point is 
     for point in point_generator:
         if not math.isnan(point[2]):
             distances.append(np.sqrt(point[0] ** 2 + point[1] ** 2))
@@ -83,7 +91,7 @@ def main():
     gt_topic = rospy.get_param("~gt_topic")
     scan_topic = rospy.get_param("~scan_topic")
     cmd_topic = rospy.get_param("~cmd_topic")
-    debug_plot = rospy.get_param("debug_plot",default=False)
+    debug_plot = rospy.get_param("~debug_plot",default=False)
 
     rospy.Subscriber(gt_topic, PoseStamped, callback=pose_callback)
     rospy.Subscriber(scan_topic, LaserScan, callback=scan_callback)
@@ -125,7 +133,9 @@ def main():
         curve3 = plot.plot(shape[cur_ind:next_ind+1,0],shape[cur_ind:next_ind+1,1],pen="g")
 
     while not rospy.is_shutdown():
-        pg.QtGui.QApplication.processEvents()
+        if debug_plot:
+            pg.QtGui.QApplication.processEvents()
+
         # first check that there are no obstacles nearby
         if scan is not None:
             if obstacle_check(scan):
@@ -136,15 +146,10 @@ def main():
                 continue
 
         if robot_pose is not None:
-            robot_xy = np.array([robot_pose.position.x,
-                                 robot_pose.position.y])
-            start_xy = shape[cur_ind,:]
-            next_xy = shape[next_ind,:]
-
-            u, cte = segmented_cte([start_xy,next_xy],robot_xy)
-            control = -p*cte - d * (cte-last_cte)
+            u, cte = segmented_cte(shape, cur_ind, next_ind)
+            
+            control = PD_control(p, d, last_cte, cte)
             last_cte = cte
-            print("CTE: ", cte)
 
             if u >= 1:
                 cur_ind = next_ind
@@ -159,10 +164,15 @@ def main():
             cmd_pub.publish(twist_msg)
 
             if debug_plot:
+                robot_xy = np.array([robot_pose.position.x,
+                                 robot_pose.position.y])
                 curve2.setData(shape[cur_ind:next_ind+1,0],shape[cur_ind:next_ind+1,1])
                 curve3.setData([shape[cur_ind][0],robot_xy[0]] ,[shape[cur_ind][1],robot_xy[1]])
 
         rate.sleep()
+
+def PD_control(p, d, last_cte, cte):
+    return -p*cte - d * (cte-last_cte)
 
 if __name__ == "__main__":
     rospy.init_node("mocap_nav")

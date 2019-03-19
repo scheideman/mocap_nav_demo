@@ -7,5 +7,6 @@
         <param name="scan_topic" value="/front/scan"/>
         <param name="gt_topic" value="/vrpn_client_node/robot/pose"/>
         <param name="cmd_topic" value="/cmd_vel"/>
+        <param name="debug_plot" value="true"/>
     </node>
 </launch>
