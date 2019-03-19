@@ -1,6 +1,6 @@
 # mocap_nav_demo
 
-Use motion capture localization feedback to drive Jackal robot along figure 8 path. Uses segmented cross-track error (CTE) error for PD control.
+Navigation demo assuming perfect ground truth pose from motion capture system. Uses mocap localization feedback to drive Jackal robot along figure 8 path. Segmented cross-track error (CTE) error is used for PD control.
 
 # Dependencies
 
